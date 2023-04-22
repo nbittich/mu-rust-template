@@ -20,6 +20,32 @@ async fn hello(Path(name): Path<String>) -> String {
 const EXAMPLE_QUERY_NON_SUDO: &str = include_str!("templates/query1.sparql");
 const EXAMPLE_QUERY_SUDO: &str = include_str!("templates/query2.sparql");
 
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn Error>> {
+    setup_tracing()?; // setup logging
+
+    let host = var(SERVICE_HOST).unwrap_or_else(|_| String::from("0.0.0.0"));
+
+    let port = var(SERVICE_PORT).unwrap_or_else(|_| String::from("80"));
+
+    let addr = SocketAddr::from_str(&format!("{host}:{port}"))?;
+
+    let sparql_client = Arc::new(mu_rust_sparql_client::SparqlClient::new(Default::default())?);
+
+    let app = Router::new()
+        .route_with_tsr("/query/:sudo", post(query)) // with_tsr means trailing slash redirect
+        .route("/hello/:name", get(hello))
+        .with_state(sparql_client);
+
+    tracing::info!("listening on {:?}", addr);
+
+    axum::Server::bind(&addr)
+        .serve(app.into_make_service())
+        .await?;
+
+    Ok(())
+}
+
 async fn query(
     ExtractSession(session): ExtractSession,
     Path(sudo): Path<bool>,
@@ -61,32 +87,6 @@ async fn query(
     // send
     let headers = AppendHeaders(response_headers);
     Ok((StatusCode::OK, headers, Json(response)))
-}
-
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
-    setup_tracing()?; // setup logging
-
-    let host = var(SERVICE_HOST).unwrap_or_else(|_| String::from("0.0.0.0"));
-
-    let port = var(SERVICE_PORT).unwrap_or_else(|_| String::from("80"));
-
-    let addr = SocketAddr::from_str(&format!("{host}:{port}"))?;
-
-    let sparql_client = Arc::new(mu_rust_sparql_client::SparqlClient::new(Default::default())?);
-
-    let app = Router::new()
-        .route_with_tsr("/query/:sudo", post(query)) // with_tsr means trailing slash redirect
-        .route("/hello/:name", get(hello))
-        .with_state(sparql_client);
-
-    tracing::info!("listening on {:?}", addr);
-
-    axum::Server::bind(&addr)
-        .serve(app.into_make_service())
-        .await?;
-
-    Ok(())
 }
 
 fn server_error(error: Box<dyn Error>) -> StatusCode {
