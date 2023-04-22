@@ -1,0 +1,6 @@
+SELECT ?s
+WHERE {
+  GRAPH <http://mu.semte.ch/graphs/worship-service> {
+    ?s a <${type}>; ?p ?o
+  }
+} limit 10

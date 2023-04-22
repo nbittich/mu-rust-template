@@ -27,6 +27,6 @@ ENV TZ="Europe/Brussels"
 
 ENV RUST_LOG=info
 
-COPY --from=builder  /app/mu-rust-template/target/release/s3-sync-rs .
+COPY --from=builder  /app/mu-rust-template/target/release/mu-rust-template .
 
 ENTRYPOINT [ "./mu-rust-template" ]
