@@ -1,0 +1,6 @@
+SELECT *
+WHERE {
+  GRAPH <http://mu.semte.ch/application> {
+    ?s a <${type}>; ?p ?o
+  }
+} limit 10
