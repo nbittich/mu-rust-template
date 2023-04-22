@@ -13,10 +13,6 @@ use mu_rust_common::{setup_tracing, SPARQL_RESULT_CONTENT_TYPE};
 use mu_rust_service_common::{extract_session_headers::ExtractSession, SERVICE_HOST, SERVICE_PORT};
 use mu_rust_sparql_client::{HeaderValue, SparqlClient};
 
-async fn hello(Path(name): Path<String>) -> String {
-    format!("hello {name} from rust-template")
-}
-
 const EXAMPLE_QUERY_NON_SUDO: &str = include_str!("templates/query1.sparql");
 const EXAMPLE_QUERY_SUDO: &str = include_str!("templates/query2.sparql");
 
@@ -46,6 +42,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+async fn hello(Path(name): Path<String>) -> String {
+    format!("hello {name} from rust-template")
+}
+
 async fn query(
     ExtractSession(session): ExtractSession,
     Path(sudo): Path<bool>,
@@ -66,18 +66,18 @@ async fn query(
                 "http://data.vlaanderen.be/ns/besluit#Bestuurseenheid".into(),
             )]),
         )
-        .map_err(|e| server_error(e))?;
+        .map_err(server_error)?;
     // execute query (use query_sudo for sudo queries)
     let (mut response_headers, response) = if sudo {
         sparql_client
             .query_sudo(query, Some(session))
             .await
-            .map_err(|e| server_error(e))?
+            .map_err(server_error)?
     } else {
         sparql_client
             .query(query, session)
             .await
-            .map_err(|e| server_error(e))?
+            .map_err(server_error)?
     };
     // enrich response headers
     response_headers.push((
